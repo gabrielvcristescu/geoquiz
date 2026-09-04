@@ -1,0 +1,328 @@
+
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="GeoQuiz este un joc educativ de geografie cu hartă interactivă, țări, capitale, drapele, date locale și suport PWA/offline.">
+<meta name="theme-color" content="#5b8dd9">
+<meta name="color-scheme" content="light dark">
+<title>GeoQuiz – joc educativ de geografie</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans,sans-serif);background:var(--color-background-secondary,#f4f6f8);min-height:100vh;padding:24px 16px}
+#app{width:min(1100px,100%);margin:0 auto;padding:1rem 1.1rem 1.25rem;background:var(--color-background-primary,#fff);border:1px solid var(--color-border-tertiary,#ddd);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+.screen{display:none}.screen.active{display:block}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem}
+.header h2{font-size:17px;font-weight:500;color:var(--color-text-primary,#111)}
+.score-bar{font-size:13px;color:var(--color-text-secondary,#666);display:flex;gap:10px}
+.score-bar b{color:var(--color-text-primary,#111)}
+.home-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:1.1rem}
+.mode-card{background:var(--color-background-primary,#fff);border:.5px solid var(--color-border-tertiary,#ddd);border-radius:12px;padding:1rem;cursor:pointer}
+.mode-card:hover{border-color:var(--color-border-primary,#999)}
+.mode-card .ic{font-size:24px;margin-bottom:5px}
+.mode-card h3{font-size:13px;font-weight:500;color:var(--color-text-primary,#111);margin-bottom:2px}
+.mode-card p{font-size:12px;color:var(--color-text-secondary,#666);line-height:1.4}
+.continent-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1rem}
+.cbtn{padding:5px 12px;border:.5px solid var(--color-border-tertiary,#ddd);border-radius:20px;background:var(--color-background-primary,#fff);font-size:12px;cursor:pointer;color:var(--color-text-primary,#111)}
+.cbtn.active{background:#5b8dd9;color:#fff;border-color:#5b8dd9}
+
+.pwa-install{display:none;margin-top:.7rem}
+.pwa-install.show{display:inline-block}
+
+/* COUNTRY CARD - bogat */
+.ccard{background:var(--color-background-primary,#fff);border:.5px solid var(--color-border-tertiary,#ddd);border-radius:12px;padding:.9rem 1rem;margin-bottom:.65rem;display:flex;gap:14px;align-items:stretch}
+.ccard-flag{flex-shrink:0;width:144px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.ccard-flag img{width:128px;height:96px;object-fit:contain;border-radius:4px;border:.5px solid var(--color-border-tertiary,#ddd);display:block}
+.ccard-flag .emoji-flag{font-size:88px;line-height:1}
+.ccard-body{flex:1;min-width:0}
+.ccard-body h3{font-size:17px;font-weight:500;color:var(--color-text-primary,#111);margin-bottom:5px}
+.ccard-meta{display:grid;grid-template-columns:1fr 1fr;gap:3px 12px}
+.meta-row{display:flex;align-items:baseline;gap:5px;font-size:12px}
+.meta-label{color:var(--color-text-secondary,#666);white-space:nowrap;flex-shrink:0}
+.meta-val{color:var(--color-text-primary,#111);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ccard-hint{font-size:12px;color:var(--color-text-secondary,#666);margin-top:7px;padding-top:7px;border-top:.5px solid var(--color-border-tertiary,#ddd)}
+
+.progress-bar{width:100%;height:5px;background:var(--color-background-secondary,#eee);border-radius:3px;margin-bottom:.7rem;overflow:hidden}
+.progress-fill{height:100%;background:#5b8dd9;border-radius:3px;transition:width .3s}
+.feedback{height:42px;padding:7px 12px;border-radius:8px;font-size:13px;font-weight:500;margin-bottom:.6rem;display:flex;align-items:center;visibility:hidden;opacity:0;overflow:hidden}
+.feedback.ok{background:#e8f5e2;color:#2d6a14;visibility:visible;opacity:1}
+.feedback.bad{background:#fdecea;color:#a32d2d;visibility:visible;opacity:1}
+.feedback.info{background:#eef3f8;color:#334b63;visibility:visible;opacity:1}
+.btn{padding:7px 16px;border:.5px solid var(--color-border-secondary,#bbb);border-radius:8px;background:var(--color-background-primary,#fff);font-size:13px;cursor:pointer;color:var(--color-text-primary,#111)}
+.btn:hover{background:var(--color-background-secondary,#f5f5f5)}
+.btn.primary{background:#5b8dd9;color:#fff;border-color:#5b8dd9}
+.btn.primary:hover{background:#3a6db8}
+.btn-row{display:flex;gap:8px;margin-top:.7rem;align-items:center}
+svg#map{border-radius:10px;border:.5px solid var(--color-border-tertiary,#ddd);width:100%;height:auto;aspect-ratio:960/500;background:#dbeefa;display:block;margin:0 auto}
+.country{vector-effect:non-scaling-stroke;transition:fill .12s,filter .12s}
+.country.context{stroke:#aeb6bf;stroke-width:.38;pointer-events:none}
+.country.active{stroke:#68717a;stroke-width:.55;cursor:pointer}
+.country.neutral-territory{stroke:#a5adb5;stroke-width:.5}
+.country.active:hover{filter:brightness(.88)}
+.country.hit{fill:#7ec8a0!important;stroke:#3a8a5a!important;stroke-width:1.3!important}
+.country.miss{fill:#f4a0a0!important;stroke:#c03030!important;stroke-width:.8!important}
+.country.reveal{fill:#f9c96a!important;stroke:#c8922a!important;stroke-width:1.3!important}
+.micro-marker{stroke:#4e565e;stroke-width:.65;vector-effect:non-scaling-stroke;pointer-events:none}
+.micro-marker.hit{fill:#7ec8a0!important;stroke:#3a8a5a;stroke-width:1.5}
+.micro-marker.miss{fill:#f4a0a0!important;stroke:#c03030;stroke-width:1}
+.micro-marker.reveal{fill:#f9c96a!important;stroke:#c8922a;stroke-width:1.5}
+#map .country:focus,#map .country:focus-visible,
+#map .micro-marker-hitbox:focus,#map .micro-marker-hitbox:focus-visible{outline:none!important;box-shadow:none!important}
+#map{-webkit-tap-highlight-color:transparent}
+.micro-marker-hitbox{cursor:pointer;outline:none;pointer-events:none}
+.micro-marker-group.target .micro-marker-hitbox{pointer-events:all}
+.micro-marker-group.target .micro-marker{stroke:#2f5f86;stroke-width:1.15}
+.settings-panel{padding:.8rem .9rem;margin-bottom:1rem;border:1px solid var(--color-border-tertiary,#ddd);border-radius:10px;background:var(--color-background-secondary,#f6f8fa)}
+.settings-panel label{display:block;font-size:12px;font-weight:600;color:var(--color-text-primary,#111);margin-bottom:5px}
+.settings-panel select{width:100%;max-width:460px;padding:7px 10px;border:1px solid var(--color-border-secondary,#bbb);border-radius:8px;background:var(--color-background-primary,#fff);color:var(--color-text-primary,#111);font-size:13px}
+.profile-info{font-size:12px;line-height:1.45;color:var(--color-text-secondary,#666);margin-top:7px}
+.data-status{font-size:11px;color:var(--color-text-secondary,#666);margin-top:5px}
+.map-note[hidden]{display:none}
+.source-note{font-size:11px;color:var(--color-text-secondary,#666);margin-top:.7rem;line-height:1.45}
+.source-note a{color:#356fb5}
+.about-content{font-size:12px;line-height:1.6;color:var(--color-text-secondary,#666);max-width:820px}
+.about-panel{background:var(--color-background-primary,#fff);border:.5px solid var(--color-border-tertiary,#ddd);border-radius:12px;padding:1rem 1.1rem}
+.about-content p{margin:.48rem 0}
+.about-content strong{color:var(--color-text-primary,#111)}
+.about-content a{color:#356fb5}
+.btn.danger{border-color:#d5a0a0;color:#a32d2d}
+.btn.danger:hover{background:#fdecea}
+.match-wrapper{display:grid;grid-template-columns:1fr 1fr;gap:12px;user-select:none}
+.match-wrapper h4,.flag-match-wrapper h4{font-size:14px;font-weight:600;margin:0 0 9px;color:var(--color-text-primary,#111)}
+.drag-item{padding:8px 12px;border:.5px solid var(--color-border-secondary,#bbb);border-radius:8px;background:var(--color-background-primary,#fff);font-size:13px;margin-bottom:6px;cursor:grab;color:var(--color-text-primary,#111);transition:opacity .1s}
+.drag-item.dragging{opacity:.35}
+.drag-item.selected{border-color:#5b8dd9;background:#edf4fd;box-shadow:0 0 0 2px rgba(91,141,217,.12)}
+.drag-item.used{opacity:.22;cursor:default;pointer-events:none}
+.drop-zone{padding:8px 12px;cursor:pointer;border:1.5px dashed var(--color-border-secondary,#bbb);border-radius:8px;background:transparent;font-size:13px;margin-bottom:6px;color:var(--color-text-secondary,#888);min-height:38px;transition:background .1s,border-color .1s}
+.drop-zone.over{background:#e8f0fb;border-color:#5b8dd9}
+.drop-zone.matched{border-style:solid;border-color:#3a8a5a;background:#e8f5e2;color:#2d6a14;cursor:default}
+.matched-capital{font-weight:400;color:#2d6a14;white-space:normal}
+.drop-zone.wrong-anim{border-color:#c03030;background:#fdecea}
+.drop-zone{display:flex;align-items:center;gap:8px}
+.drop-flag{width:28px;height:21px;object-fit:contain;flex:0 0 28px;border-radius:2px}
+.drop-flag-fallback{width:28px;flex:0 0 28px;text-align:center;font-size:20px;line-height:1}
+.flag-match-wrapper{display:grid;grid-template-columns:1fr 1fr;gap:14px;user-select:none}
+.flag-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.flag-item{min-height:92px;padding:8px;border:1px solid var(--color-border-secondary,#bbb);border-radius:9px;background:var(--color-background-primary,#fff);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .1s,border-color .1s,opacity .1s,transform .1s}
+.flag-item:hover{background:var(--color-background-secondary,#f5f5f5)}
+.flag-item.selected{border-color:#5b8dd9;background:#edf4fd;box-shadow:0 0 0 2px rgba(91,141,217,.12)}
+.flag-item.dragging{opacity:.4}
+.flag-item.used{opacity:.22;pointer-events:none}
+.flag-item img{width:112px;height:84px;max-width:100%;object-fit:contain}
+.flag-item-fallback{font-size:54px;line-height:1}
+.flag-country-zone{width:100%;min-height:48px;padding:8px 12px;margin-bottom:8px;border:1px solid var(--color-border-secondary,#bbb);border-radius:8px;background:transparent;color:var(--color-text-primary,#111);font:inherit;text-align:left;cursor:pointer;transition:background .1s,border-color .1s;display:flex;align-items:center;gap:9px}
+.flag-country-slot{width:38px;height:28px;flex:0 0 38px;border:1.5px dashed var(--color-border-secondary,#aaa);border-radius:3px;display:flex;align-items:center;justify-content:center;background:var(--color-background-primary,#fff)}
+.flag-country-slot img{width:36px;height:27px;object-fit:contain}
+.flag-country-slot.matched{border-style:solid;border-color:transparent;background:transparent}
+.flag-country-label{min-width:0}
+.flag-country-zone:hover,.flag-country-zone.over{background:#e8f0fb;border-color:#5b8dd9}
+.flag-country-zone.matched{border-style:solid;border-color:#3a8a5a;background:#e8f5e2;color:#2d6a14;pointer-events:none}
+.flag-country-zone.wrong-anim{border-color:#c03030;background:#fdecea}
+.mode-help{font-size:11px;color:var(--color-text-secondary,#666);margin:.15rem 0 .65rem;line-height:1.45}
+.lb-list{background:var(--color-background-primary,#fff);border:.5px solid var(--color-border-tertiary,#ddd);border-radius:12px;overflow:hidden}
+.lb-row{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:.5px solid var(--color-border-tertiary,#ddd);font-size:13px}
+.lb-row:last-child{border-bottom:none}
+.lb-name{flex:1;color:var(--color-text-primary,#111)}
+.lb-score{font-weight:500;color:var(--color-text-primary,#111)}
+.new-badge{font-size:10px;background:#5b8dd9;color:#fff;padding:1px 6px;border-radius:10px}
+.stat-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem}
+.sc{background:var(--color-background-secondary,#f5f5f5);border-radius:8px;padding:10px;text-align:center}
+.sc .v{font-size:22px;font-weight:500;color:var(--color-text-primary,#111)}
+.sc .l{font-size:11px;color:var(--color-text-secondary,#666);margin-top:2px}
+
+@media (max-width:900px){
+  .home-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:720px){
+  body{padding:10px 8px}
+  #app{padding:.85rem;border-radius:12px}
+  .home-grid{grid-template-columns:1fr}
+  .ccard{flex-direction:column}
+  .ccard-flag{width:100%;flex-direction:row;justify-content:flex-start}
+  .ccard-meta{grid-template-columns:1fr}
+  .match-wrapper,.flag-match-wrapper{grid-template-columns:1fr}
+  .flag-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .flag-item{min-height:72px}
+  .flag-item img{width:86px;height:64px}
+}
+</style>
+</head><body>
+<noscript>
+  <div style="max-width:760px;margin:2rem auto;padding:1rem;border:1px solid #ccc;border-radius:10px;background:#fff;color:#222">
+    GeoQuiz are nevoie de JavaScript activat pentru a funcționa.
+  </div>
+</noscript>
+<div id="app">
+
+<div id="s-home" class="screen active">
+  <div class="header"><h2>🌍 GeoQuiz</h2></div>
+  <div class="home-grid">
+    <div class="mode-card" onclick="startClick()"><div class="ic">🗺️</div><h3>Găsește țara</h3><p>Identifică pe hartă țara indicată.</p></div>
+    <div class="mode-card" onclick="startMatch()"><div class="ic">🏙️</div><h3>Găsește capitala</h3><p>Potrivește cele 6 capitale cu țările lor.</p></div>
+    <div class="mode-card" onclick="startFlagMatch()"><div class="ic">🚩</div><h3>Găsește drapelul</h3><p>Potrivește cele 6 drapele cu țările lor.</p></div>
+    <div class="mode-card" onclick="showLb()"><div class="ic">🏆</div><h3>Campionat</h3><p>Vezi și salvează cele mai bune scoruri.</p></div>
+    <div class="mode-card" onclick="showStats()"><div class="ic">📊</div><h3>Statistici</h3><p>Vezi acuratețea și progresul pe continente.</p></div>
+    <div class="mode-card" onclick="showAbout()"><div class="ic">ℹ️</div><h3>Despre</h3><p>Informații despre hartă, date și licențe.</p></div>
+  </div>
+  <div class="settings-panel">
+    <label for="profile-select">Profil cartografic</label>
+    <select id="profile-select" onchange="changeProfile(this.value)">
+      <option value="school" selected>Atlas școlar</option>
+      <option value="un">ONU – 193 de state membre</option>
+      <option value="observers">ONU + două state observatoare</option>
+      <option value="iso">ISO 3166 – țări și teritorii</option>
+    </select>
+    <div id="profile-info" class="profile-info">Se încarcă profilul cartografic…</div>
+    <div id="data-status" class="data-status" aria-live="polite">Se inițializează datele locale…</div>
+  </div>
+  <div style="font-size:12px;color:var(--color-text-secondary,#666);margin-bottom:6px">Continent:</div>
+  <div class="continent-row">
+    <button class="cbtn active" onclick="selCont('all',this)">🌍 Toate</button>
+    <button class="cbtn" onclick="selCont('Europe',this)">Europa</button>
+    <button class="cbtn" onclick="selCont('Asia',this)">Asia</button>
+    <button class="cbtn" onclick="selCont('Africa',this)">Africa</button>
+    <button class="cbtn" onclick="selCont('NorthAmerica',this)">America de Nord</button>
+    <button class="cbtn" onclick="selCont('SouthAmerica',this)">America de Sud</button>
+    <button class="cbtn" onclick="selCont('Oceania',this)">Oceania</button>
+  </div>
+  <div class="source-note">Datele despre țări, steagurile și harta detaliată Natural Earth 1:50m sunt incluse local și pot fi folosite offline.</div>
+</div>
+
+<div id="s-click" class="screen">
+  <div class="header">
+    <h2>Găsește țara</h2>
+    <div class="score-bar">⏱ <span id="timer-disp">30</span>s &nbsp;🏅 <b id="click-score">0</b></div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="click-prog" style="width:0%"></div></div>
+
+  <!-- CARD BOGAT -->
+  <div class="ccard" id="country-card">
+    <div class="ccard-flag">
+      <img id="card-flag-img" alt="" hidden>
+      <span id="card-flag-emoji" style="display:none" class="emoji-flag"></span>
+    </div>
+    <div class="ccard-body">
+      <h3 id="card-name">România</h3>
+      <div class="ccard-meta">
+        <div class="meta-row"><span class="meta-label">🏙 Capitală</span><span class="meta-val" id="card-capital">București</span></div>
+        <div class="meta-row"><span class="meta-label">👥 Populație</span><span class="meta-val" id="card-pop">19 mil.</span></div>
+        <div class="meta-row"><span class="meta-label">📐 Suprafață</span><span class="meta-val" id="card-area">238.397 km²</span></div>
+        <div class="meta-row"><span class="meta-label">💬 Limbi</span><span class="meta-val" id="card-lang">Română</span></div>
+        <div class="meta-row"><span class="meta-label">💰 Monedă</span><span class="meta-val" id="card-currency">Leu (RON)</span></div>
+        <div class="meta-row"><span class="meta-label">🗺 Regiune</span><span class="meta-val" id="card-region">Europa de Est</span></div>
+      </div>
+      <div class="ccard-hint">→ Găsește această țară pe hartă</div>
+    </div>
+  </div>
+
+  <div class="feedback" id="click-fb" aria-live="polite"></div>
+  <svg id="map" viewBox="0 0 960 500" role="img" aria-label="Hartă politică interactivă a lumii"></svg>
+  <div class="map-note" id="map-note" hidden></div>
+  <div class="btn-row">
+    <button class="btn" onclick="skipClick()">Sari →</button>
+    <button class="btn" style="margin-left:auto" onclick="home()">Ieși</button>
+  </div>
+</div>
+
+<div id="s-match" class="screen">
+  <div class="header"><h2>Găsește capitala</h2><div class="score-bar">🏅 <b id="match-score">0</b></div></div>
+  <div class="progress-bar"><div class="progress-fill" id="match-prog" style="width:0%"></div></div>
+  <div class="feedback" id="match-fb" aria-live="polite"></div>
+  <div class="mode-help">Trage o capitală peste țara corectă sau atinge capitala și apoi țara. Sunt 6 perechi pe rundă.</div>
+  <div class="match-wrapper">
+    <div><h4>Capitale</h4><div id="drag-col"></div></div>
+    <div><h4>Țări</h4><div id="drop-col"></div></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn primary" id="match-next-btn" style="display:none" onclick="nextMatchRound()">Runda următoare ↗</button>
+    <button class="btn" style="margin-left:auto" onclick="home()">Ieși</button>
+  </div>
+</div>
+
+<div id="s-flags" class="screen">
+  <div class="header"><h2>Găsește drapelul</h2><div class="score-bar">🏅 <b id="flag-score">0</b></div></div>
+  <div class="progress-bar"><div class="progress-fill" id="flag-prog" style="width:0%"></div></div>
+  <div class="feedback" id="flag-fb" aria-live="polite"></div>
+  <div class="mode-help">Trage un drapel peste țara corectă sau atinge drapelul și apoi țara. Sunt 6 perechi pe rundă.</div>
+  <div class="flag-match-wrapper">
+    <div><h4>Drapele</h4><div class="flag-grid" id="flag-drag-col"></div></div>
+    <div><h4>Țări</h4><div id="flag-drop-col"></div></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn primary" id="flag-next-btn" style="display:none" onclick="nextFlagRound()">Runda următoare ↗</button>
+    <button class="btn" style="margin-left:auto" onclick="home()">Ieși</button>
+  </div>
+</div>
+
+<div id="s-lb" class="screen">
+  <div class="header"><h2>Campionat</h2></div>
+  <div class="lb-list" id="lb-list"></div>
+  <div style="display:flex;gap:8px;margin-top:1rem">
+    <input id="player-name" placeholder="Numele tău..." style="flex:1;padding:8px 12px;border:.5px solid var(--color-border-secondary,#bbb);border-radius:8px;background:var(--color-background-primary,#fff);font-size:13px;color:var(--color-text-primary,#111)">
+    <button class="btn primary" onclick="saveLb()">Salvează</button>
+    <button class="btn danger" onclick="clearLeaderboard()">Șterge clasamentul</button>
+    <button class="btn" onclick="home()">Înapoi</button>
+  </div>
+</div>
+
+<div id="s-stats" class="screen">
+  <div class="header"><h2>Statistici</h2></div>
+  <div class="stat-cards" id="stat-cards"></div>
+  <div id="cont-bars"></div>
+  <div class="btn-row" style="margin-top:1rem">
+    <button class="btn danger" onclick="resetStatistics()">Resetează statisticile</button>
+    <button class="btn" style="margin-left:auto" onclick="home()">Înapoi</button>
+  </div>
+</div>
+
+<div id="s-about" class="screen">
+  <div class="header"><h2>Despre</h2></div>
+  <div class="about-panel">
+    <div class="about-content">
+      <p><strong>GeoQuiz</strong> este un joc educativ de geografie care combină identificarea țărilor pe hartă cu capitale, populație, suprafață, limbi, monedă și drapele.</p>
+      <p>Geometria detaliată a hărții provine din <strong>Natural Earth 1:50m</strong>. Geometria țărilor, stratul zonelor disputate, datele descriptive, steagurile și harta de rezervă sunt incluse local, astfel încât aplicația poate funcționa offline.</p>
+      <p>Steagurile sunt reprezentări vectoriale plate în format SVG din proiectul <strong>Flag Icons</strong> (licență MIT), incluse local în aplicație.</p>
+      <p>Profilurile <strong>Atlas școlar</strong>, <strong>ONU</strong>, <strong>ONU + două state observatoare</strong> și <strong>ISO 3166</strong> controlează ce entități pot deveni răspunsuri în joc.</p>
+      <p>Harta de bază Natural Earth urmărește în principal reprezentarea administrativă și situația de facto folosită de sursa cartografică. Pentru a nu transforma această convenție cartografică într-o atribuire implicită a teritoriilor cu statut contestat, GeoQuiz suprapune un <strong>strat neutru pentru zonele disputate</strong>. Aceste zone nu exprimă o poziție politică a aplicației și nu devin automat răspunsuri în joc.</p>
+      <p>Teritoriile dependente pot fi afișate împreună cu statul suveran în profilele în care nu sunt răspunsuri separate. De exemplu, Groenlanda este asociată Danemarcei; în profilul ISO poate deveni entitate selectabilă separat.</p>
+      <p><strong>Aplicația este concepută, testată și integrată de Gabriel Valentin Cristescu, cu asistență AI în procesul de implementare. Datele, bibliotecile și serviciile externe sunt utilizate conform licențelor și condițiilor proprii.</strong></p>
+      <button class="btn pwa-install" id="install-app-btn" type="button">Instalează aplicația</button>
+      <p>Surse și licențe: <a href="THIRD_PARTY_NOTICES.md">THIRD_PARTY_NOTICES.md</a>.</p>
+    </div>
+  </div>
+  <div class="btn-row"><button class="btn" style="margin-left:auto" onclick="home()">Înapoi</button></div>
+</div>
+
+</div>
+<script src="data/countries-data.js"></script>
+<script src="data/map-data.js"></script>
+<script src="data/disputed-data.js"></script>
+<script src="app.js"></script>
+<script>
+let geoQuizInstallPrompt = null;
+const installBtn = document.getElementById("install-app-btn");
+window.addEventListener("beforeinstallprompt", event => {
+  event.preventDefault();
+  geoQuizInstallPrompt = event;
+  if (installBtn) installBtn.classList.add("show");
+});
+if (installBtn) installBtn.addEventListener("click", async () => {
+  if (!geoQuizInstallPrompt) return;
+  geoQuizInstallPrompt.prompt();
+  await geoQuizInstallPrompt.userChoice;
+  geoQuizInstallPrompt = null;
+  installBtn.classList.remove("show");
+});
+window.addEventListener("appinstalled", () => {
+  geoQuizInstallPrompt = null;
+  if (installBtn) installBtn.classList.remove("show");
+});
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("service-worker.js").catch(console.error));
+}
+</script>
+</body></html>
