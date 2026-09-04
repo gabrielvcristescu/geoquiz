@@ -123,6 +123,11 @@ svg#map{border-radius:10px;border:.5px solid var(--color-border-tertiary,#ddd);w
 .flag-country-zone.matched{border-style:solid;border-color:#3a8a5a;background:#e8f5e2;color:#2d6a14;pointer-events:none}
 .flag-country-zone.wrong-anim{border-color:#c03030;background:#fdecea}
 .mode-help{font-size:11px;color:var(--color-text-secondary,#666);margin:.15rem 0 .65rem;line-height:1.45}
+.mode-help-touch{display:none}
+@media (hover:none) and (pointer:coarse){
+  .mode-help-desktop{display:none}
+  .mode-help-touch{display:inline}
+}
 .lb-list{background:var(--color-background-primary,#fff);border:.5px solid var(--color-border-tertiary,#ddd);border-radius:12px;overflow:hidden}
 .lb-row{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:.5px solid var(--color-border-tertiary,#ddd);font-size:13px}
 .lb-row:last-child{border-bottom:none}
@@ -232,7 +237,10 @@ svg#map{border-radius:10px;border:.5px solid var(--color-border-tertiary,#ddd);w
   <div class="header"><h2>Găsește capitala</h2><div class="score-bar">🏅 <b id="match-score">0</b></div></div>
   <div class="progress-bar"><div class="progress-fill" id="match-prog" style="width:0%"></div></div>
   <div class="feedback" id="match-fb" aria-live="polite"></div>
-  <div class="mode-help">Trage o capitală peste țara corectă sau atinge capitala și apoi țara. Sunt 6 perechi pe rundă.</div>
+  <div class="mode-help">
+    <span class="mode-help-desktop">Trage o capitală peste țara corectă. Sunt 6 perechi pe rundă.</span>
+    <span class="mode-help-touch">Atinge o capitală, apoi țara corectă. Sunt 6 perechi pe rundă.</span>
+  </div>
   <div class="match-wrapper">
     <div><h4>Capitale</h4><div id="drag-col"></div></div>
     <div><h4>Țări</h4><div id="drop-col"></div></div>
@@ -247,7 +255,10 @@ svg#map{border-radius:10px;border:.5px solid var(--color-border-tertiary,#ddd);w
   <div class="header"><h2>Găsește drapelul</h2><div class="score-bar">🏅 <b id="flag-score">0</b></div></div>
   <div class="progress-bar"><div class="progress-fill" id="flag-prog" style="width:0%"></div></div>
   <div class="feedback" id="flag-fb" aria-live="polite"></div>
-  <div class="mode-help">Trage un drapel peste țara corectă sau atinge drapelul și apoi țara. Sunt 6 perechi pe rundă.</div>
+  <div class="mode-help">
+    <span class="mode-help-desktop">Trage un drapel peste țara corectă. Sunt 6 perechi pe rundă.</span>
+    <span class="mode-help-touch">Atinge un drapel, apoi țara corectă. Sunt 6 perechi pe rundă.</span>
+  </div>
   <div class="flag-match-wrapper">
     <div><h4>Drapele</h4><div class="flag-grid" id="flag-drag-col"></div></div>
     <div><h4>Țări</h4><div id="flag-drop-col"></div></div>
